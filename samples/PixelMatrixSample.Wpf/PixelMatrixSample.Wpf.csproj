@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PixelMatrixSample.Wpf</RootNamespace>
+    <AssemblyName>PixelMatrixSample.Wpf</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Prism.Unity" Version="8.0.0.1909" />
+    <PackageReference Include="ReactiveProperty" Version="7.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Asserts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\source\PixelMatrix.Wpf\PixelMatrix.Wpf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Asserts\image1.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

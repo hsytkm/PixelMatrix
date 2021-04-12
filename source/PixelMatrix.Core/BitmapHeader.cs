@@ -1,0 +1,69 @@
+﻿using System;
+using System.Runtime.InteropServices;
+
+namespace PixelMatrixLibrary.Core
+{
+    // http://www.umekkii.jp/data/computer/file_format/bitmap.cgi
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    readonly struct BitmapHeader
+    {
+        // Bitmap File Header
+        public readonly Int16 FileType;
+        public readonly Int32 FileSize;
+        public readonly Int16 Reserved1;
+        public readonly Int16 Reserved2;
+        public readonly Int32 OffsetBytes;
+
+        // Bitmap Information Header
+        public readonly Int32 InfoSize;
+        public readonly Int32 Width;
+        public readonly Int32 Height;
+        public readonly Int16 Planes;
+        public readonly Int16 BitCount;
+        public readonly Int32 Compression;
+        public readonly Int32 SizeImage;
+        public readonly Int32 XPixPerMete;
+        public readonly Int32 YPixPerMete;
+        public readonly Int32 ClrUsed;
+        public readonly Int32 CirImportant;
+
+        public BitmapHeader(int width, int height, int bitsPerPixel)
+        {
+            var fileHeaderSize = 14;
+            var infoHeaderSize = 40;
+            var totalHeaderSize = fileHeaderSize + infoHeaderSize;
+            var imageSize = GetImageSize(width, height, bitsPerPixel);
+
+            FileType = 0x4d42;  // 'B','M'
+            FileSize = totalHeaderSize + imageSize;
+            Reserved1 = 0;
+            Reserved2 = 0;
+            OffsetBytes = totalHeaderSize;
+
+            InfoSize = infoHeaderSize;
+            Width = width;
+            Height = height;
+            Planes = 1;
+            BitCount = (Int16)bitsPerPixel;
+            Compression = 0;
+            SizeImage = imageSize;
+            XPixPerMete = 0;        // 適切な値を設定したいけど理解していない…
+            YPixPerMete = 0;        // 適切な値を設定したいけど理解していない…
+            ClrUsed = 0;
+            CirImportant = 0;
+        }
+
+        public int ImageStride => GetImageStride(Width, BitCount);
+
+        private static int GetImageStride(int width, int bitsPerPixel)
+        {
+            var bytesPerPixel = Ceiling(bitsPerPixel, 8);
+            return Ceiling(width * bytesPerPixel, 4) * 4;   // strideは4の倍数
+
+            static int Ceiling(int value, int align) => (value + (align - 1)) / align;
+        }
+
+        private static int GetImageSize(int width, int height, int bitsPerPixel)
+            => GetImageStride(width, bitsPerPixel) * height;
+    }
+}
