@@ -3,11 +3,14 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWPF>true</UseWPF>
-    <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
+    <Title>PixelMatrix.Wpf</Title>
     <RootNamespace>PixelMatrixLibrary.Wpf</RootNamespace>
   </PropertyGroup>
+
+
+  <Import Project="../SharedProperties.csproj" />
 
   <ItemGroup>
     <ProjectReference Include="..\PixelMatrix.Core\PixelMatrix.Core.csproj" />

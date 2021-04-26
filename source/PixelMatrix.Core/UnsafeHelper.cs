@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace PixelMatrixLibrary.Core
 {
-    public class UnsafeHelper
+    public static class UnsafeHelper
     {
         //[DllImport("kernel32.dll", EntryPoint = "RtlMoveMemory", SetLastError = false)]
         //private static extern void RtlMoveMemory(IntPtr dest, IntPtr src, [MarshalAs(UnmanagedType.U4)] int length);
@@ -45,7 +45,7 @@ namespace PixelMatrixLibrary.Core
         }
 
         /// <summary>構造体を byte[] に書き出します</summary>
-        public static void CopyStructToArray<T>(T srcData, Span<byte> destArray) where T : unmanaged
+        public static void CopyStructToArray<T>(T srcData, in ReadOnlySpan<byte> destArray) where T : unmanaged
         {
             // unsafe is faster than Marshal.Copy and GCHandle.
             // https://gist.github.com/hsytkm/55b9bdfaa3eae18fcc1b91449cf16998
@@ -61,5 +61,12 @@ namespace PixelMatrixLibrary.Core
                 }
             }
         }
+
+        /// <summary>構造体を IntPtr に書き出します</summary>
+        public static unsafe void WriteStructureToPtr<T>(IntPtr dest, in T data) where T : unmanaged
+        {
+            *((T*)dest) = data;
+        }
+
     }
 }

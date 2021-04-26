@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace PixelMatrixLibrary.Core
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 28)]
     public readonly struct PixelMatrix : IEquatable<PixelMatrix>
     {
         public readonly IntPtr PixelsPtr;
@@ -19,7 +19,7 @@ namespace PixelMatrixLibrary.Core
         {
             if (IntPtr.Size != 8) throw new NotSupportedException();
             if (bytesPerPixel != 3) throw new NotSupportedException();
-            if (Marshal.SizeOf(typeof(PixelMatrix)) != 8 + 4 * 5) throw new NotSupportedException();
+            if (Marshal.SizeOf(typeof(PixelMatrix)) != 8 + sizeof(int) * 5) throw new NotSupportedException();
 
             Width = width;
             Height = height;
@@ -61,7 +61,7 @@ namespace PixelMatrixLibrary.Core
         /// <summary>指定エリアの画素平均値を取得します</summary>
         public ReadOnlySpan<double> GetChannelsAverage(int rectX, int rectY, int rectWidth, int rectHeight)
         {
-            if (IsInvalid) throw new ArgumentException("Invalid Image");
+            if (IsInvalid) throw new ArgumentException("Invalid image.");
             if (rectWidth * rectHeight == 0) throw new ArgumentException("Area is zero.");
             if (Width < rectX + rectWidth) throw new ArgumentException("Width over.");
             if (Height < rectY + rectHeight) throw new ArgumentException("Height over.");
@@ -101,29 +101,80 @@ namespace PixelMatrixLibrary.Core
         /// <summary>画面全体の画素平均値を取得します</summary>
         public ReadOnlySpan<double> GetChannelsAverage()
         {
-            if (IsInvalid) throw new ArgumentException("Invalid Image");
+            if (IsInvalid) throw new ArgumentException("Invalid image.");
             return GetChannelsAverage(0, 0, Width, Height);
         }
         #endregion
 
-        #region Fill
-        public void FillPixels(byte level) => FillPixels(new Pixel3ch(level));
-        public void FillPixels(byte ch0, byte ch1, byte ch2) => FillPixels(new Pixel3ch(ch0, ch1, ch2));
-
-        public unsafe void FillPixels(in Pixel3ch pixels)
+        #region FillAllPixels
+        /// <summary>指定の画素値で画像全体を埋めます</summary>
+        public void FillAllPixels(in Pixel3ch pixels)
         {
-            var pixelsHead = (byte*)PixelsPtr;
-            var stride = Stride;
-            var pixelsTail = pixelsHead + Height * stride;
-
-            for (var line = (byte*)PixelsPtr; line < pixelsTail; line += stride)
+            unsafe
             {
-                var lineTail = line + stride;
-                for (var p = (Pixel3ch*)line; p < lineTail; ++p)
+                var pixelsHead = (byte*)PixelsPtr;
+                var stride = Stride;
+                var pixelsTail = pixelsHead + Height * stride;
+                var widthOffset = Width * BytesPerPixel;
+
+                for (var line = (byte*)PixelsPtr; line < pixelsTail; line += stride)
                 {
-                    *p = pixels;
+                    var lineTail = line + widthOffset;
+                    for (var p = (Pixel3ch*)line; p < lineTail; ++p)
+                    {
+                        *p = pixels;
+                    }
                 }
             }
+        }
+        #endregion
+
+        #region FillRectangle
+        /// <summary>指定領域の画素を更新します</summary>
+        public void FillRectangle(int x, int y, int width, int height, in Pixel3ch pixel)
+        {
+            if (Width < x + width) throw new ArgumentException("vertical direction");
+            if (Height < y + height) throw new ArgumentException("horizontal direction");
+
+            unsafe
+            {
+                var lineHeadPtr = (byte*)GetPixelPtr(x, y);
+                var lineTailPtr = lineHeadPtr + (height * Stride);
+                var widthOffset = width * BytesPerPixel;
+
+                for (var linePtr = lineHeadPtr; linePtr < lineTailPtr; linePtr += Stride)
+                {
+                    for (var p = (Pixel3ch*)linePtr; p < linePtr + widthOffset; p++)
+                        *p = pixel;
+                }
+            }
+        }
+        #endregion
+
+        #region WritePixel
+        /// <summary>指定画素の IntPtr を取得します</summary>
+        public IntPtr GetPixelPtr(int x, int y)
+        {
+            if (x > Width - 1 || y > Height - 1) throw new ArgumentException("Out of image.");
+            return PixelsPtr + (y * Stride) + (x * BytesPerPixel);
+        }
+
+        /// <summary>指定位置の画素を更新します</summary>
+        public void WritePixel(int x, int y, in Pixel3ch pixels)
+        {
+            if (x > Width - 1 || y > Height - 1) return;
+            var ptr = GetPixelPtr(x, y);
+            UnsafeHelper.WriteStructureToPtr(ptr, pixels);
+        }
+        #endregion
+
+        #region CutOut
+        /// <summary>画像の一部を切り出した子画像を取得します</summary>
+        public PixelMatrix CutOutPixelMatrix(int x, int y, int width, int height)
+        {
+            if (Width < x + width) throw new ArgumentException("vertical direction");
+            if (Height < y + height) throw new ArgumentException("horizontal direction");
+            return new PixelMatrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y), height * Stride);
         }
         #endregion
 
@@ -131,7 +182,8 @@ namespace PixelMatrixLibrary.Core
         /// <summary>画像をbmpファイルに保存します</summary>
         public void ToBmpFile(string savePath)
         {
-            if (IsInvalid) throw new ArgumentException("Invalid Image");
+            if (IsInvalid) throw new ArgumentException("Invalid image.");
+            if (File.Exists(savePath)) throw new SystemException("File is exists.");
 
             using var ms = new MemoryStream();
             var bitmapSpan = GetBitmapBinary(this);
@@ -147,7 +199,6 @@ namespace PixelMatrixLibrary.Core
             {
                 var height = pixel.Height;
                 var srcStride = pixel.Stride;
-
                 var destHeader = new BitmapHeader(pixel.Width, height, pixel.BitsPerPixel);
                 var destBuffer = new byte[destHeader.FileSize];
 

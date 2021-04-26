@@ -6,7 +6,7 @@ using System.Windows.Media.Imaging;
 
 namespace PixelMatrixLibrary.Wpf.Extensions
 {
-    public static class BitmapSourceExtension
+    public static class PixelMatrixBitmapSourceExtension
     {
         /// <summary>BitmapSource に異常がないかチェックします</summary>
         internal static bool IsValid(this BitmapSource bitmap) => bitmap.PixelWidth > 0 && bitmap.PixelHeight > 0;
@@ -29,13 +29,13 @@ namespace PixelMatrixLibrary.Wpf.Extensions
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Image");
 
             var container = new PixelMatrixContainer(bitmap.PixelWidth, bitmap.PixelHeight);
-            CopyToPixelMatrix(bitmap, container.PixelMatrix);
+            CopyTo(bitmap, container.FullPixels);
 
             return container;
         }
 
         /// <summary>ImagePixels に画素値をコピーします</summary>
-        private static void CopyToPixelMatrix(this BitmapSource bitmap, in PixelMatrix pixel)
+        private static void CopyTo(this BitmapSource bitmap, in PixelMatrix pixel)
         {
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Bitmap");
             if (pixel.IsInvalid) throw new ArgumentException("Invalid Pixels");

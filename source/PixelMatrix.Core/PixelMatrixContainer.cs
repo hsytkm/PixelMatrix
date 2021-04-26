@@ -7,7 +7,7 @@ namespace PixelMatrixLibrary.Core
     {
         private const int PixelChannels = 3;
 
-        public readonly PixelMatrix PixelMatrix;
+        public PixelMatrix FullPixels { get; }
         private readonly IntPtr _allocatedMemoryPointer;
         private readonly int _allocatedSize;
         private bool _disposedValue;
@@ -15,13 +15,12 @@ namespace PixelMatrixLibrary.Core
         private PixelMatrixContainer(int width, int height, int bytesPerPixels)
         {
             var stride = width * bytesPerPixels;
-            var size = stride * height;
 
-            _allocatedSize = size;
-            _allocatedMemoryPointer = Marshal.AllocHGlobal(size);
-            GC.AddMemoryPressure(size);
+            _allocatedSize = stride * height;
+            _allocatedMemoryPointer = Marshal.AllocCoTaskMem(_allocatedSize);
+            GC.AddMemoryPressure(_allocatedSize);
 
-            PixelMatrix = new PixelMatrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer, size);
+            FullPixels = new PixelMatrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer, _allocatedSize);
         }
 
         public PixelMatrixContainer(int width, int height) : this(width, height, PixelChannels) { }
@@ -37,7 +36,7 @@ namespace PixelMatrixLibrary.Core
             }
 
             // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-            Marshal.FreeHGlobal(_allocatedMemoryPointer);
+            Marshal.FreeCoTaskMem(_allocatedMemoryPointer);
             GC.RemoveMemoryPressure(_allocatedSize);
 
             // TODO: 大きなフィールドを null に設定します

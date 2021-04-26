@@ -1,4 +1,6 @@
-﻿using PixelMatrixLibrary.Wpf.Extensions;
+﻿using PixelMatrixLibrary.Core;
+using PixelMatrixLibrary.Wpf.Extensions;
+using PixelMatrixSample.Wpf.Extensions;
 using Prism.Mvvm;
 using Reactive.Bindings;
 using System;
@@ -14,20 +16,63 @@ namespace PixelMatrixSample.Wpf
 
         public MainWindowViewModel()
         {
-            var bitmapImage = Extensions.BitmapSourceExtension.FromFile(@"Asserts\image1.bmp");
+            var bitmapImage = BitmapSourceExtension.FromFile(@"Asserts\image1.bmp");
             SourceImage = new ReactivePropertySlim<BitmapSource>(initialValue: bitmapImage);
 
-            using var pixelContainr = bitmapImage.ToPixelMatrixContainer();
-            var pixelMatrix = pixelContainr.PixelMatrix;
-            var channelAverage1 = pixelMatrix.GetChannelsAverage();
+            using var pixelContainer = bitmapImage.ToPixelMatrixContainer();
+            var fullPixelMatrix = pixelContainer.FullPixels;
 
-            pixelMatrix.FillPixels(0x80, 0x00, 0x40);
+            // 元画像の画素値平均
+            var channelAverage1 = fullPixelMatrix.GetChannelsAverage();
 
-            var channelAverage2 = pixelMatrix.GetChannelsAverage();
+            // 1. 三角領域を指定色で指定塗り
+            FillTriangle(fullPixelMatrix);
 
-            var writableBitmap = pixelMatrix.ToWriteableBitmap();
+            // 2. 上部を切り出して指定塗り
+            var headerPixelMatrix = fullPixelMatrix.CutOutPixelMatrix(0, 0, fullPixelMatrix.Width, 30);
+            headerPixelMatrix.FillAllPixels(Pixel3ch.Gray);
+            var headerChannelAverage2 = headerPixelMatrix.GetChannelsAverage();
+
+            // 3. 上部を除いた左部を切り出してグレスケ塗り
+            var leftPixelMatrix = fullPixelMatrix.CutOutPixelMatrix(0, headerPixelMatrix.Height, 50, fullPixelMatrix.Height - headerPixelMatrix.Height);
+            FillGrayScaleVertical(leftPixelMatrix);
+
+            // BitmapSourceに変換してView表示
+            var writableBitmap = fullPixelMatrix.ToWriteableBitmap();
             WriteableImage = new ReactivePropertySlim<WriteableBitmap>(initialValue: writableBitmap);
-
         }
+
+        // 三角領域を単色で塗り(WritePixelのテスト)
+        static void FillTriangle(in PixelMatrix pixelMatrix)
+        {
+            int baseX = 100, baseY = 200, height = 100;
+            var color = new Pixel3ch(0, 0xff, 0);
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = baseX; x < baseX + y; x++)
+                    pixelMatrix.WritePixel(x, baseY + y, color);    // ホントは FillRectangle() を使うべきだけど、WritePixel() のテストなので。
+            }
+        }
+
+        // 垂直方向で階調が変化するグレー塗り
+        static void FillGrayScaleVertical(in PixelMatrix pixelMatrix)
+        {
+            const int range = 256;
+            var length = pixelMatrix.Height / range;
+
+            if (length > 0)
+            {
+                for (int lv = 0; lv < range; ++lv)
+                {
+                    var color = new Pixel3ch((byte)(lv & 0xff));
+                    pixelMatrix.FillRectangle(0, lv * length, pixelMatrix.Width, length, color);
+                }
+            }
+
+            var filledHeight = length * range;
+            pixelMatrix.FillRectangle(0, filledHeight, pixelMatrix.Width, pixelMatrix.Height - filledHeight, Pixel3ch.Black);
+        }
+
     }
 }
