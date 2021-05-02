@@ -39,7 +39,7 @@ namespace PixelMatrixLibrary.Wpf.Extensions
 
             writeableBitmap.WritePixels(
                 new System.Windows.Int32Rect(0, 0, pixel.Width, pixel.Height),
-                pixel.PixelsPtr, pixel.AllocSize, pixel.Stride);
+                pixel.PixelsPtr, pixel.AllocatedSize, pixel.Stride);
 
             //writeableBitmap.Freeze();
         }

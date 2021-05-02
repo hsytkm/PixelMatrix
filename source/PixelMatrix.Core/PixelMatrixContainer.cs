@@ -20,7 +20,7 @@ namespace PixelMatrixLibrary.Core
             _allocatedMemoryPointer = Marshal.AllocCoTaskMem(_allocatedSize);
             GC.AddMemoryPressure(_allocatedSize);
 
-            FullPixels = new PixelMatrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer, _allocatedSize);
+            FullPixels = new PixelMatrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer);
         }
 
         public PixelMatrixContainer(int width, int height) : this(width, height, PixelChannels) { }

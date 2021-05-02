@@ -23,7 +23,7 @@ namespace PixelMatrixSample.Wpf
             var fullPixelMatrix = pixelContainer.FullPixels;
 
             // 元画像の画素値平均
-            var channelAverage1 = fullPixelMatrix.GetChannelsAverage();
+            var channelAverage1 = fullPixelMatrix.GetChannelsAverageOfEntire();
 
             // 1. 三角領域を指定色で指定塗り
             FillTriangle(fullPixelMatrix);
@@ -31,7 +31,7 @@ namespace PixelMatrixSample.Wpf
             // 2. 上部を切り出して指定塗り
             var headerPixelMatrix = fullPixelMatrix.CutOutPixelMatrix(0, 0, fullPixelMatrix.Width, 30);
             headerPixelMatrix.FillAllPixels(Pixel3ch.Gray);
-            var headerChannelAverage2 = headerPixelMatrix.GetChannelsAverage();
+            var headerChannelAverage2 = headerPixelMatrix.GetChannelsAverageOfEntire();
 
             // 3. 上部を除いた左部を切り出してグレスケ塗り
             var leftPixelMatrix = fullPixelMatrix.CutOutPixelMatrix(0, headerPixelMatrix.Height, 50, fullPixelMatrix.Height - headerPixelMatrix.Height);
@@ -51,7 +51,7 @@ namespace PixelMatrixSample.Wpf
             for (int y = 0; y < height; y++)
             {
                 for (int x = baseX; x < baseX + y; x++)
-                    pixelMatrix.WritePixel(x, baseY + y, color);    // ホントは FillRectangle() を使うべきだけど、WritePixel() のテストなので。
+                    pixelMatrix.WritePixel(color, x, baseY + y);    // ホントは FillRectangle() を使うべきだけど、WritePixel() のテストなので。
             }
         }
 
@@ -66,12 +66,12 @@ namespace PixelMatrixSample.Wpf
                 for (int lv = 0; lv < range; ++lv)
                 {
                     var color = new Pixel3ch((byte)(lv & 0xff));
-                    pixelMatrix.FillRectangle(0, lv * length, pixelMatrix.Width, length, color);
+                    pixelMatrix.FillRectangle(color, 0, lv * length, pixelMatrix.Width, length);
                 }
             }
 
             var filledHeight = length * range;
-            pixelMatrix.FillRectangle(0, filledHeight, pixelMatrix.Width, pixelMatrix.Height - filledHeight, Pixel3ch.Black);
+            pixelMatrix.FillRectangle(Pixel3ch.Black, 0, filledHeight, pixelMatrix.Width, pixelMatrix.Height - filledHeight);
         }
 
     }

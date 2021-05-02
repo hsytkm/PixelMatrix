@@ -9,13 +9,13 @@ namespace PixelMatrixLibrary.Core
     public readonly struct PixelMatrix : IEquatable<PixelMatrix>
     {
         public readonly IntPtr PixelsPtr;
-        public readonly int AllocSize;
+        //public readonly int AllocSize; //= Height * Stride;
         public readonly int Width;
         public readonly int Height;
         public readonly int BytesPerPixel;
         public readonly int Stride;
 
-        public PixelMatrix(int width, int height, int bytesPerPixel, int stride, IntPtr intPtr, int size)
+        public PixelMatrix(int width, int height, int bytesPerPixel, int stride, IntPtr intPtr)
         {
             if (IntPtr.Size != 8) throw new NotSupportedException();
             if (bytesPerPixel != 3) throw new NotSupportedException();
@@ -26,45 +26,45 @@ namespace PixelMatrixLibrary.Core
             BytesPerPixel = bytesPerPixel;
             Stride = stride;
             PixelsPtr = intPtr;
-            AllocSize = size;
         }
 
         #region IEquatable<T>
-        public bool Equals(PixelMatrix other) => (PixelsPtr, AllocSize, Width, Height, BytesPerPixel, Stride) == (other.PixelsPtr, other.AllocSize, other.Width, other.Height, other.BytesPerPixel, other.Stride);
+        public bool Equals(PixelMatrix other) => (PixelsPtr, Width, Height, BytesPerPixel, Stride) == (other.PixelsPtr, other.Width, other.Height, other.BytesPerPixel, other.Stride);
         public override bool Equals(object? obj) => (obj is PixelMatrix other) && Equals(other);
-        public override int GetHashCode() => HashCode.Combine(PixelsPtr, AllocSize, Width, Height, BytesPerPixel, Stride);
+        public override int GetHashCode() => HashCode.Combine(PixelsPtr, Width, Height, BytesPerPixel, Stride);
         public static bool operator ==(in PixelMatrix left, in PixelMatrix right) => left.Equals(right);
         public static bool operator !=(in PixelMatrix left, in PixelMatrix right) => !(left == right);
         #endregion
 
         #region Properties
-        public readonly int BitsPerPixel => BytesPerPixel * 8;
+        public int AllocatedSize => Height * Stride;
+        public int BitsPerPixel => BytesPerPixel * 8;
 
-        public readonly bool IsContinuous => Width * BytesPerPixel == Stride;
+        public bool IsContinuous => (Width * BytesPerPixel) == Stride;
 
-        public readonly bool IsValid
+        public bool IsValid
         {
             get
             {
                 if (PixelsPtr == IntPtr.Zero) return false;
-                if (Width == 0 || Height == 0) return false;
+                if (Width <= 0 || Height <= 0) return false;
                 if (Stride < Width * BytesPerPixel) return false;
-                if (AllocSize < Width * BytesPerPixel * Height) return false;
+                if (AllocatedSize < Width * BytesPerPixel * Height) return false;
                 return true;    //valid
             }
         }
 
-        public readonly bool IsInvalid => !IsValid;
+        public bool IsInvalid => !IsValid;
         #endregion
 
         #region GetChannelsAverage
-        /// <summary>指定エリアの画素平均値を取得します</summary>
-        public ReadOnlySpan<double> GetChannelsAverage(int rectX, int rectY, int rectWidth, int rectHeight)
+        /// <summary>指定領域における各チャンネルの画素平均値を取得します</summary>
+        public ReadOnlySpan<double> GetChannelsAverage(int x, int y, int width, int height)
         {
             if (IsInvalid) throw new ArgumentException("Invalid image.");
-            if (rectWidth * rectHeight == 0) throw new ArgumentException("Area is zero.");
-            if (Width < rectX + rectWidth) throw new ArgumentException("Width over.");
-            if (Height < rectY + rectHeight) throw new ArgumentException("Height over.");
+            if (width * height == 0) throw new ArgumentException("Area is zero.");
+            if (Width < x + width) throw new ArgumentException("Width over.");
+            if (Height < y + height) throw new ArgumentException("Height over.");
 
             var bytesPerPixel = BytesPerPixel;
             Span<ulong> sumChannels = stackalloc ulong[bytesPerPixel];
@@ -72,9 +72,9 @@ namespace PixelMatrixLibrary.Core
             unsafe
             {
                 var stride = Stride;
-                var rowHead = (byte*)PixelsPtr + (rectY * stride);
-                var rowTail = rowHead + (rectHeight * stride);
-                var columnLength = rectWidth * bytesPerPixel;
+                var rowHead = (byte*)PixelsPtr + (y * stride);
+                var rowTail = rowHead + (height * stride);
+                var columnLength = width * bytesPerPixel;
 
                 for (byte* rowPtr = rowHead; rowPtr < rowTail; rowPtr += stride)
                 {
@@ -89,7 +89,7 @@ namespace PixelMatrixLibrary.Core
             }
 
             var aveChannels = new double[sumChannels.Length];
-            var count = (double)(rectWidth * rectHeight);
+            var count = (double)(width * height);
 
             for (var i = 0; i < aveChannels.Length; ++i)
             {
@@ -98,12 +98,8 @@ namespace PixelMatrixLibrary.Core
             return aveChannels;
         }
 
-        /// <summary>画面全体の画素平均値を取得します</summary>
-        public ReadOnlySpan<double> GetChannelsAverage()
-        {
-            if (IsInvalid) throw new ArgumentException("Invalid image.");
-            return GetChannelsAverage(0, 0, Width, Height);
-        }
+        /// <summary>画面全体における各チャンネルの画素平均値を取得します</summary>
+        public ReadOnlySpan<double> GetChannelsAverageOfEntire() => GetChannelsAverage(0, 0, Width, Height);
         #endregion
 
         #region FillAllPixels
@@ -131,7 +127,7 @@ namespace PixelMatrixLibrary.Core
 
         #region FillRectangle
         /// <summary>指定領域の画素を更新します</summary>
-        public void FillRectangle(int x, int y, int width, int height, in Pixel3ch pixel)
+        public void FillRectangle(in Pixel3ch pixel, int x, int y, int width, int height)
         {
             if (Width < x + width) throw new ArgumentException("vertical direction");
             if (Height < y + height) throw new ArgumentException("horizontal direction");
@@ -160,7 +156,7 @@ namespace PixelMatrixLibrary.Core
         }
 
         /// <summary>指定位置の画素を更新します</summary>
-        public void WritePixel(int x, int y, in Pixel3ch pixels)
+        public void WritePixel(in Pixel3ch pixels, int x, int y)
         {
             if (x > Width - 1 || y > Height - 1) return;
             var ptr = GetPixelPtr(x, y);
@@ -174,7 +170,7 @@ namespace PixelMatrixLibrary.Core
         {
             if (Width < x + width) throw new ArgumentException("vertical direction");
             if (Height < y + height) throw new ArgumentException("horizontal direction");
-            return new PixelMatrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y), height * Stride);
+            return new PixelMatrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y));
         }
         #endregion
 
