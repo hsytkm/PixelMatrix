@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace PixelMatrixLibrary.Core
+namespace PixelMatrix.Core
 {
     public class PixelMatrixContainer : IDisposable
     {
-        private const int PixelChannels = 3;
-
-        public PixelMatrix FullPixels { get; }
+        public Pixel3chMatrix FullPixels { get; }
         private readonly IntPtr _allocatedMemoryPointer;
         private readonly int _allocatedSize;
         private bool _disposedValue;
+
+        public PixelMatrixContainer(int width, int height) : this(width, height, Pixel3chMatrix.Channel) { }
 
         private PixelMatrixContainer(int width, int height, int bytesPerPixels)
         {
@@ -20,10 +20,8 @@ namespace PixelMatrixLibrary.Core
             _allocatedMemoryPointer = Marshal.AllocCoTaskMem(_allocatedSize);
             GC.AddMemoryPressure(_allocatedSize);
 
-            FullPixels = new PixelMatrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer);
+            FullPixels = new Pixel3chMatrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer);
         }
-
-        public PixelMatrixContainer(int width, int height) : this(width, height, PixelChannels) { }
 
         #region IDisposable
         protected virtual void Dispose(bool disposing)

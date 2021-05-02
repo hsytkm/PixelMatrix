@@ -5,7 +5,6 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Title>PixelMatrix.Core</Title>
-    <RootNamespace>PixelMatrixLibrary.Core</RootNamespace>
   </PropertyGroup>
 
   <Import Project="../SharedProperties.csproj" />

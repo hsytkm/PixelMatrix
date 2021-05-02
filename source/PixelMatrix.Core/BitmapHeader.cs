@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace PixelMatrixLibrary.Core
+namespace PixelMatrix.Core
 {
     // http://www.umekkii.jp/data/computer/file_format/bitmap.cgi
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    readonly struct BitmapHeader
+    internal readonly struct BitmapHeader
     {
         // Bitmap File Header
         public readonly Int16 FileType;
@@ -57,10 +57,8 @@ namespace PixelMatrixLibrary.Core
 
         private static int GetImageStride(int width, int bitsPerPixel)
         {
-            var bytesPerPixel = Ceiling(bitsPerPixel, 8);
-            return Ceiling(width * bytesPerPixel, 4) * 4;   // strideは4の倍数
-
-            static int Ceiling(int value, int align) => (value + (align - 1)) / align;
+            var bytesPerPixel = (int)Math.Ceiling(bitsPerPixel / 8d);
+            return (int)Math.Ceiling(width * bytesPerPixel / 4d) * 4;   // strideは4の倍数
         }
 
         private static int GetImageSize(int width, int height, int bitsPerPixel)

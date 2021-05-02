@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace PixelMatrixLibrary.Core
+namespace PixelMatrix.Core
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 3)]
     public readonly struct Pixel3ch : IEquatable<Pixel3ch>
@@ -18,10 +18,10 @@ namespace PixelMatrixLibrary.Core
         public static readonly Pixel3ch Black = new(0x00);
 
         #region IEquatable<T>
-        public bool Equals(Pixel3ch other) => (Ch0, Ch1, Ch2) == (other.Ch0, other.Ch1, other.Ch2);
+        public bool Equals(Pixel3ch other) => this == other;
         public override bool Equals(object? obj) => (obj is Pixel3ch other) && Equals(other);
         public override int GetHashCode() => HashCode.Combine(Ch0, Ch1, Ch2);
-        public static bool operator ==(in Pixel3ch left, in Pixel3ch right) => left.Equals(right);
+        public static bool operator ==(in Pixel3ch left, in Pixel3ch right) => (left.Ch0, left.Ch1, left.Ch2) == (right.Ch0, right.Ch1, right.Ch2);
         public static bool operator !=(in Pixel3ch left, in Pixel3ch right) => !(left == right);
         #endregion
 

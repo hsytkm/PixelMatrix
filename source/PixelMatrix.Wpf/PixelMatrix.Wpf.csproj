@@ -6,7 +6,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
     <Title>PixelMatrix.Wpf</Title>
-    <RootNamespace>PixelMatrixLibrary.Wpf</RootNamespace>
   </PropertyGroup>
 
 

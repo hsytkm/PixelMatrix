@@ -2,10 +2,11 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace PixelMatrixLibrary.Core
+namespace PixelMatrix.Core
 {
     public static class UnsafeHelper
     {
+        #region MemCopy
         //[DllImport("kernel32.dll", EntryPoint = "RtlMoveMemory", SetLastError = false)]
         //private static extern void RtlMoveMemory(IntPtr dest, IntPtr src, [MarshalAs(UnmanagedType.U4)] int length);
 
@@ -43,6 +44,7 @@ namespace PixelMatrixLibrary.Core
                 ++destPtr;
             }
         }
+        #endregion
 
         /// <summary>構造体を byte[] に書き出します</summary>
         public static void CopyStructToArray<T>(T srcData, in ReadOnlySpan<byte> destArray) where T : unmanaged

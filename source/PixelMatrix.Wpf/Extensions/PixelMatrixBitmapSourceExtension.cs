@@ -1,10 +1,10 @@
-﻿using PixelMatrixLibrary.Core;
+﻿using PixelMatrix.Core;
 using System;
 using System.Buffers;
 using System.Windows;
 using System.Windows.Media.Imaging;
 
-namespace PixelMatrixLibrary.Wpf.Extensions
+namespace PixelMatrix.Wpf.Extensions
 {
     public static class PixelMatrixBitmapSourceExtension
     {
@@ -18,9 +18,7 @@ namespace PixelMatrixLibrary.Wpf.Extensions
         public static int GetBytesPerPixel(this BitmapSource bitmap)
         {
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Image");
-            return Ceiling(bitmap.Format.BitsPerPixel, 8);
-
-            static int Ceiling(int value, int div) => (value + (div - 1)) / div;
+            return (int)Math.Ceiling(bitmap.Format.BitsPerPixel / 8d);
         }
 
         /// <summary>ToPixelMatrixContainer を作成して返します</summary>
@@ -29,21 +27,24 @@ namespace PixelMatrixLibrary.Wpf.Extensions
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Image");
 
             var container = new PixelMatrixContainer(bitmap.PixelWidth, bitmap.PixelHeight);
-            CopyTo(bitmap, container.FullPixels);
-
+            container.FullPixels.Update(bitmap);
             return container;
         }
+    }
 
+    public static class Pixel3chMatrixBitmapSourceExtension
+    {
         /// <summary>ImagePixels に画素値をコピーします</summary>
-        private static void CopyTo(this BitmapSource bitmap, in PixelMatrix pixel)
+        internal static void Update(in this Pixel3chMatrix pixel, BitmapSource bitmap)
         {
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Bitmap");
             if (pixel.IsInvalid) throw new ArgumentException("Invalid Pixels");
             if (bitmap.PixelWidth != pixel.Width) throw new ArgumentException("Different Width");
             if (bitmap.PixelHeight != pixel.Height) throw new ArgumentException("Different Height");
-            if (bitmap.GetBytesPerPixel() < pixel.BytesPerPixel) throw new ArgumentException("Invalid BytesPerPixel");
 
             var bytesPerPixel = bitmap.GetBytesPerPixel();
+            if (bytesPerPixel < pixel.BytesPerPixel) throw new ArgumentException("Invalid BytesPerPixel");
+
             var rect1Line = new Int32Rect(0, 0, bitmap.PixelWidth, height: 1);
 
             // 1行ずつメモリに読み出して処理する(ヒープ使用量の削減)
@@ -78,6 +79,6 @@ namespace PixelMatrixLibrary.Wpf.Extensions
                 ArrayPool<byte>.Shared.Return(bufferArray, clearArray: true);
             }
         }
-
     }
+
 }

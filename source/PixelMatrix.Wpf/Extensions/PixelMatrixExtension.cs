@@ -1,33 +1,36 @@
-﻿using PixelMatrixLibrary.Core;
+﻿using PixelMatrix.Core;
 using System;
 
-namespace PixelMatrixLibrary.Wpf.Extensions
+namespace PixelMatrix.Wpf.Extensions
 {
     public static class PixelMatrixExtension
     {
-        private const double _dpiX = 96.0;
-        private const double _dpiY = _dpiX;
+        internal static double _dpiX = 96.0;
+        internal static double _dpiY = _dpiX;
+    }
 
+    public static class Pixel3chMatrixExtension
+    {
         #region ToBitmapSource
         /// <summary>System.Windows.Media.Imaging.BitmapSource に変換します</summary>
-        public static System.Windows.Media.Imaging.BitmapSource ToBitmapSource(in this PixelMatrix pixel)
+        public static System.Windows.Media.Imaging.BitmapSource ToBitmapSource(in this Pixel3chMatrix pixel, bool isFreeze = true)
         {
             if (pixel.IsInvalid) throw new ArgumentException("Invalid ImagePixels");
             if (pixel.BytesPerPixel != 3) throw new NotSupportedException("Invalid BytesPerPixel");
 
             var bitmapSource = System.Windows.Media.Imaging.BitmapSource.Create(
-                pixel.Width, pixel.Height, _dpiX, _dpiY,
+                pixel.Width, pixel.Height, PixelMatrixExtension._dpiX, PixelMatrixExtension._dpiY,
                 System.Windows.Media.PixelFormats.Bgr24, null,
                 pixel.PixelsPtr, pixel.Height * pixel.Stride, pixel.Stride);
 
-            bitmapSource.Freeze();
+            if (isFreeze) bitmapSource.Freeze();
             return bitmapSource;
         }
         #endregion
 
         #region ToWriteableBitmap
         /// <summary>System.Windows.Media.Imaging.WriteableBitmap の画素値を更新します(遅いです)</summary>
-        public static void CopyTo(in this PixelMatrix pixel, System.Windows.Media.Imaging.WriteableBitmap writeableBitmap)
+        public static void Update(this System.Windows.Media.Imaging.WriteableBitmap writeableBitmap, in Pixel3chMatrix pixel, bool isFreeze = false)
         {
             if (pixel.IsInvalid) throw new ArgumentException("Invalid Image");
 
@@ -41,22 +44,20 @@ namespace PixelMatrixLibrary.Wpf.Extensions
                 new System.Windows.Int32Rect(0, 0, pixel.Width, pixel.Height),
                 pixel.PixelsPtr, pixel.AllocatedSize, pixel.Stride);
 
-            //writeableBitmap.Freeze();
+            if (isFreeze) writeableBitmap.Freeze();
         }
 
         /// <summary>System.Windows.Media.Imaging.WriteableBitmap に変換します</summary>
-        public static System.Windows.Media.Imaging.WriteableBitmap ToWriteableBitmap(in this PixelMatrix pixel, bool isFreeze = false)
+        public static System.Windows.Media.Imaging.WriteableBitmap ToWriteableBitmap(in this Pixel3chMatrix pixel, bool isFreeze = false)
         {
             if (pixel.IsInvalid) throw new ArgumentException("Invalid ImagePixels");
             if (pixel.BytesPerPixel != 3) throw new NotSupportedException("Invalid BytesPerPixel");
 
             var writeableBitmap = new System.Windows.Media.Imaging.WriteableBitmap(
-                pixel.Width, pixel.Height, _dpiX, _dpiY,
+                pixel.Width, pixel.Height, PixelMatrixExtension._dpiX, PixelMatrixExtension._dpiY,
                 System.Windows.Media.PixelFormats.Bgr24, null);
 
-            pixel.CopyTo(writeableBitmap);
-
-            if (isFreeze) writeableBitmap.Freeze();
+            Update(writeableBitmap, pixel, isFreeze);
             return writeableBitmap;
         }
         #endregion

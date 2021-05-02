@@ -1,13 +1,16 @@
-﻿using System;
+﻿using PixelMatrix.Core.ColorSpace;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace PixelMatrixLibrary.Core
+namespace PixelMatrix.Core
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 28)]
-    public readonly struct PixelMatrix : IEquatable<PixelMatrix>
+    [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 24)]
+    public readonly struct Pixel3chMatrix : IEquatable<Pixel3chMatrix>
     {
+        internal static int Channel = 3;
+
         public readonly IntPtr PixelsPtr;
         //public readonly int AllocSize; //= Height * Stride;
         public readonly int Width;
@@ -15,11 +18,10 @@ namespace PixelMatrixLibrary.Core
         public readonly int BytesPerPixel;
         public readonly int Stride;
 
-        public PixelMatrix(int width, int height, int bytesPerPixel, int stride, IntPtr intPtr)
+        public Pixel3chMatrix(int width, int height, int bytesPerPixel, int stride, IntPtr intPtr)
         {
             if (IntPtr.Size != 8) throw new NotSupportedException();
             if (bytesPerPixel != 3) throw new NotSupportedException();
-            if (Marshal.SizeOf(typeof(PixelMatrix)) != 8 + sizeof(int) * 5) throw new NotSupportedException();
 
             Width = width;
             Height = height;
@@ -29,11 +31,14 @@ namespace PixelMatrixLibrary.Core
         }
 
         #region IEquatable<T>
-        public bool Equals(PixelMatrix other) => (PixelsPtr, Width, Height, BytesPerPixel, Stride) == (other.PixelsPtr, other.Width, other.Height, other.BytesPerPixel, other.Stride);
-        public override bool Equals(object? obj) => (obj is PixelMatrix other) && Equals(other);
+        public bool Equals(Pixel3chMatrix other) => this == other;
+        public override bool Equals(object? obj) => (obj is Pixel3chMatrix other) && Equals(other);
         public override int GetHashCode() => HashCode.Combine(PixelsPtr, Width, Height, BytesPerPixel, Stride);
-        public static bool operator ==(in PixelMatrix left, in PixelMatrix right) => left.Equals(right);
-        public static bool operator !=(in PixelMatrix left, in PixelMatrix right) => !(left == right);
+        public static bool operator ==(in Pixel3chMatrix left, in Pixel3chMatrix right)
+             => (left.PixelsPtr, left.Width, left.Height, left.BytesPerPixel, left.Stride)
+                == (right.PixelsPtr, right.Width, right.Height, right.BytesPerPixel, right.Stride);
+
+        public static bool operator !=(in Pixel3chMatrix left, in Pixel3chMatrix right) => !(left == right);
         #endregion
 
         #region Properties
@@ -59,7 +64,7 @@ namespace PixelMatrixLibrary.Core
 
         #region GetChannelsAverage
         /// <summary>指定領域における各チャンネルの画素平均値を取得します</summary>
-        public ReadOnlySpan<double> GetChannelsAverage(int x, int y, int width, int height)
+        public ColorBgr GetChannelsAverage(int x, int y, int width, int height)
         {
             if (IsInvalid) throw new ArgumentException("Invalid image.");
             if (width * height == 0) throw new ArgumentException("Area is zero.");
@@ -88,18 +93,18 @@ namespace PixelMatrixLibrary.Core
                 }
             }
 
-            var aveChannels = new double[sumChannels.Length];
+            Span<double> aveChannels = stackalloc double[sumChannels.Length];
             var count = (double)(width * height);
 
             for (var i = 0; i < aveChannels.Length; ++i)
             {
                 aveChannels[i] = sumChannels[i] / count;
             }
-            return aveChannels;
+            return new ColorBgr(aveChannels);
         }
 
         /// <summary>画面全体における各チャンネルの画素平均値を取得します</summary>
-        public ReadOnlySpan<double> GetChannelsAverageOfEntire() => GetChannelsAverage(0, 0, Width, Height);
+        public ColorBgr GetChannelsAverageOfEntire() => GetChannelsAverage(0, 0, Width, Height);
         #endregion
 
         #region FillAllPixels
@@ -166,11 +171,11 @@ namespace PixelMatrixLibrary.Core
 
         #region CutOut
         /// <summary>画像の一部を切り出した子画像を取得します</summary>
-        public PixelMatrix CutOutPixelMatrix(int x, int y, int width, int height)
+        public Pixel3chMatrix CutOutPixelMatrix(int x, int y, int width, int height)
         {
             if (Width < x + width) throw new ArgumentException("vertical direction");
             if (Height < y + height) throw new ArgumentException("horizontal direction");
-            return new PixelMatrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y));
+            return new Pixel3chMatrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y));
         }
         #endregion
 
@@ -191,12 +196,12 @@ namespace PixelMatrixLibrary.Core
 
             ms.WriteTo(fs);
 
-            static Span<byte> GetBitmapBinary(in PixelMatrix pixel)
+            static Span<byte> GetBitmapBinary(in Pixel3chMatrix pixel)
             {
                 var height = pixel.Height;
                 var srcStride = pixel.Stride;
                 var destHeader = new BitmapHeader(pixel.Width, height, pixel.BitsPerPixel);
-                var destBuffer = new byte[destHeader.FileSize];
+                var destBuffer = new byte[destHeader.FileSize];     // さずがにデカすぎるのでbyte[]
 
                 // bufferにheaderを書き込む
                 UnsafeHelper.CopyStructToArray(destHeader, destBuffer);

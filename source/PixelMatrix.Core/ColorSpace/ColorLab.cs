@@ -1,14 +1,14 @@
 ﻿using System;
 
-namespace PixelMatrixLibrary.Core.ColorSpace
+namespace PixelMatrix.Core.ColorSpace
 {
-    public record GamutLab
+    public record ColorLab : IFormattable
     {
         public double L { get; }
         public double A { get; }
         public double B { get; }
 
-        private GamutLab(double l, double a, double b) => (L, A, B) = (l, a, b);
+        private ColorLab(double l, double a, double b) => (L, A, B) = (l, a, b);
 
         /// <summary>
         /// RGBからLabを計算(Web拾い版) これが正しいか不明…
@@ -18,7 +18,7 @@ namespace PixelMatrixLibrary.Core.ColorSpace
         /// <param name="green">Gch(0.0~255.0)</param>
         /// <param name="red">Rch(0.0~255.0)</param>
         /// <returns></returns>
-        public static GamutLab Create(double blue, double green, double red)
+        public static ColorLab Create(double blue, double green, double red)
         {
             static bool IsRange(double x) => 0d <= x && x <= 255d;
             if (!IsRange(blue) || !IsRange(green) || !IsRange(red)) throw new ArgumentException("bgr out of range.");
@@ -43,11 +43,17 @@ namespace PixelMatrixLibrary.Core.ColorSpace
             y = (y > 0.008856) ? Math.Pow(y, 1.0 / 3.0) : (7.787 * y) + (4.0 / 29.0);
             z = (z > 0.008856) ? Math.Pow(z, 1.0 / 3.0) : (7.787 * z) + (4.0 / 29.0);
 
-            return new GamutLab(
+            return new ColorLab(
                 (116.0 * y) - 16.0,     // L
                 500.0 * (x - y),        // a
                 200.0 * (y - z)         // b
             );
         }
+
+        public override string ToString() => $"L={L:f1}, a={A:f1}, b={B:f1}";
+
+        public string ToString(string? format, IFormatProvider? formatProvider)
+            => $"L={L.ToString(format, formatProvider)}, a={A.ToString(format, formatProvider)}, b={B.ToString(format, formatProvider)}";
+
     }
 }
