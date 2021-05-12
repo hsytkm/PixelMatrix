@@ -3,6 +3,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PixelMatrix.Core
 {
@@ -42,7 +44,7 @@ namespace PixelMatrix.Core
         #endregion
 
         #region Properties
-        public int AllocatedSize => Height * Stride;
+        public int AllocatedSize => Width * BytesPerPixel * Height;     // Strideは見ない
         public int BitsPerPixel => BytesPerPixel * 8;
 
         public bool IsContinuous => (Width * BytesPerPixel) == Stride;
@@ -183,18 +185,37 @@ namespace PixelMatrix.Core
         /// <summary>画像をbmpファイルに保存します</summary>
         public void ToBmpFile(string savePath)
         {
-            if (IsInvalid) throw new ArgumentException("Invalid image.");
-            if (File.Exists(savePath)) throw new SystemException("File is exists.");
-
-            var bitmapBytes = GetBitmapBinary(this);
-            using var ms = new MemoryStream(bitmapBytes);
-            ms.Seek(0, SeekOrigin.Begin);
-
+            using var ms = ToBitmapMemoryStream(savePath);
             using var fs = new FileStream(savePath, FileMode.Create);
             fs.Seek(0, SeekOrigin.Begin);
 
             ms.WriteTo(fs);
+        }
 
+        /// <summary>画像をbmpファイルに保存します</summary>
+        public async Task ToBmpFileAsync(string savePath, CancellationToken token = default)
+        {
+            await Task.Yield();
+
+            using var ms = ToBitmapMemoryStream(savePath);
+            using var fs = new FileStream(savePath, FileMode.Create);
+            fs.Seek(0, SeekOrigin.Begin);
+
+            await ms.CopyToAsync(fs, token);
+        }
+
+        /// <summary>画像をbmpファイルに保存します</summary>
+        private MemoryStream ToBitmapMemoryStream(string savePath)
+        {
+            if (IsInvalid) throw new ArgumentException("Invalid image.");
+            if (File.Exists(savePath)) throw new SystemException("File is exists.");
+
+            var bitmapBytes = GetBitmapBinary(this);
+            var ms = new MemoryStream(bitmapBytes);
+            ms.Seek(0, SeekOrigin.Begin);
+            return ms;
+
+            // Bitmapのバイナリ配列を取得します
             static byte[] GetBitmapBinary(in Pixel3Matrix pixel)
             {
                 var height = pixel.Height;

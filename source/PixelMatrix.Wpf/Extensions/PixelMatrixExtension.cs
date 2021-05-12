@@ -3,14 +3,11 @@ using System;
 
 namespace PixelMatrix.Wpf.Extensions
 {
-    public static class PixelMatrixExtension
+    public static class Pixel3MatrixExtension
     {
         internal static double _dpiX = 96.0;
         internal static double _dpiY = _dpiX;
-    }
 
-    public static class Pixel3chMatrixExtension
-    {
         #region ToBitmapSource
         /// <summary>System.Windows.Media.Imaging.BitmapSource に変換します</summary>
         public static System.Windows.Media.Imaging.BitmapSource ToBitmapSource(in this Pixel3Matrix pixel, bool isFreeze = true)
@@ -19,9 +16,9 @@ namespace PixelMatrix.Wpf.Extensions
             if (pixel.BytesPerPixel != Pixel3Matrix.Channel) throw new NotSupportedException("Invalid BytesPerPixel");
 
             var bitmapSource = System.Windows.Media.Imaging.BitmapSource.Create(
-                pixel.Width, pixel.Height, PixelMatrixExtension._dpiX, PixelMatrixExtension._dpiY,
+                pixel.Width, pixel.Height, _dpiX, _dpiY,
                 System.Windows.Media.PixelFormats.Bgr24, null,
-                pixel.PixelsPtr, pixel.Height * pixel.Stride, pixel.Stride);
+                pixel.PixelsPtr, pixel.AllocatedSize, pixel.Stride);
 
             if (isFreeze) bitmapSource.Freeze();
             return bitmapSource;
@@ -54,7 +51,7 @@ namespace PixelMatrix.Wpf.Extensions
             if (pixel.BytesPerPixel != Pixel3Matrix.Channel) throw new NotSupportedException("Invalid BytesPerPixel");
 
             var writeableBitmap = new System.Windows.Media.Imaging.WriteableBitmap(
-                pixel.Width, pixel.Height, PixelMatrixExtension._dpiX, PixelMatrixExtension._dpiY,
+                pixel.Width, pixel.Height, _dpiX, _dpiY,
                 System.Windows.Media.PixelFormats.Bgr24, null);
 
             Update(writeableBitmap, pixel, isFreeze);

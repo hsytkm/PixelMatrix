@@ -30,10 +30,7 @@ namespace PixelMatrix.Wpf.Extensions
             container.FullPixels.Update(bitmap);
             return container;
         }
-    }
 
-    public static class Pixel3chMatrixBitmapSourceExtension
-    {
         /// <summary>ImagePixels に画素値をコピーします</summary>
         internal static void Update(in this Pixel3Matrix pixel, BitmapSource bitmap)
         {
@@ -80,5 +77,4 @@ namespace PixelMatrix.Wpf.Extensions
             }
         }
     }
-
 }
