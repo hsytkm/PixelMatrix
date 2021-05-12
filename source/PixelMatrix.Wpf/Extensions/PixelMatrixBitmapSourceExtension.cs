@@ -35,7 +35,7 @@ namespace PixelMatrix.Wpf.Extensions
     public static class Pixel3chMatrixBitmapSourceExtension
     {
         /// <summary>ImagePixels に画素値をコピーします</summary>
-        internal static void Update(in this Pixel3chMatrix pixel, BitmapSource bitmap)
+        internal static void Update(in this Pixel3Matrix pixel, BitmapSource bitmap)
         {
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Bitmap");
             if (pixel.IsInvalid) throw new ArgumentException("Invalid Pixels");

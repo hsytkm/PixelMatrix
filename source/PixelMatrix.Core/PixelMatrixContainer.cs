@@ -5,12 +5,12 @@ namespace PixelMatrix.Core
 {
     public class PixelMatrixContainer : IDisposable
     {
-        public Pixel3chMatrix FullPixels { get; }
+        public Pixel3Matrix FullPixels { get; }
         private readonly IntPtr _allocatedMemoryPointer;
         private readonly int _allocatedSize;
         private bool _disposedValue;
 
-        public PixelMatrixContainer(int width, int height) : this(width, height, Pixel3chMatrix.Channel) { }
+        public PixelMatrixContainer(int width, int height) : this(width, height, Pixel3Matrix.Channel) { }
 
         private PixelMatrixContainer(int width, int height, int bytesPerPixels)
         {
@@ -20,7 +20,7 @@ namespace PixelMatrix.Core
             _allocatedMemoryPointer = Marshal.AllocCoTaskMem(_allocatedSize);
             GC.AddMemoryPressure(_allocatedSize);
 
-            FullPixels = new Pixel3chMatrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer);
+            FullPixels = new Pixel3Matrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer);
         }
 
         #region IDisposable

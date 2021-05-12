@@ -26,7 +26,6 @@ namespace PixelMatrixSample.Wpf
             var channelAverage1 = fullPixelMatrix.GetChannelsAverageOfEntire();
 
             Debug.WriteLine($"{channelAverage1:f1}");
-            Debug.WriteLine($"{channelAverage1.ToColorLab():f1}");
 
             // 1. 三角領域を指定色で指定塗り
             FillTriangle(fullPixelMatrix);
@@ -46,7 +45,7 @@ namespace PixelMatrixSample.Wpf
         }
 
         // 三角領域を単色で塗り(WritePixelのテスト)
-        static void FillTriangle(in Pixel3chMatrix pixelMatrix)
+        static void FillTriangle(in Pixel3Matrix pixelMatrix)
         {
             int baseX = 100, baseY = 200, height = 100;
             var color = new Pixel3ch(0, 0xff, 0);
@@ -59,7 +58,7 @@ namespace PixelMatrixSample.Wpf
         }
 
         // 垂直方向で階調が変化するグレー塗り
-        static void FillGrayScaleVertical(in Pixel3chMatrix pixelMatrix)
+        static void FillGrayScaleVertical(in Pixel3Matrix pixelMatrix)
         {
             const int range = 256;
             var length = pixelMatrix.Height / range;

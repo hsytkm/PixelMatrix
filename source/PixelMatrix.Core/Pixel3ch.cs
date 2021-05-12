@@ -12,6 +12,7 @@ namespace PixelMatrix.Core
 
         public Pixel3ch(byte ch0, byte ch1, byte ch2) => (Ch0, Ch1, Ch2) = (ch0, ch1, ch2);
         public Pixel3ch(byte level) : this(level, level, level) { }
+        public Pixel3ch(uint value) : this((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff)) { }
 
         public static readonly Pixel3ch White = new(0xff);
         public static readonly Pixel3ch Gray = new(0x80);

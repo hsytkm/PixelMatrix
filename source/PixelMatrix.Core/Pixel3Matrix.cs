@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 namespace PixelMatrix.Core
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 24)]
-    public readonly struct Pixel3chMatrix : IEquatable<Pixel3chMatrix>
+    public readonly struct Pixel3Matrix : IEquatable<Pixel3Matrix>
     {
-        internal static int Channel = 3;
+        public static int Channel = 3;
 
         public readonly IntPtr PixelsPtr;
         //public readonly int AllocSize; //= Height * Stride;
@@ -18,10 +18,10 @@ namespace PixelMatrix.Core
         public readonly int BytesPerPixel;
         public readonly int Stride;
 
-        public Pixel3chMatrix(int width, int height, int bytesPerPixel, int stride, IntPtr intPtr)
+        public Pixel3Matrix(int width, int height, int bytesPerPixel, int stride, IntPtr intPtr)
         {
             if (IntPtr.Size != 8) throw new NotSupportedException();
-            if (bytesPerPixel != 3) throw new NotSupportedException();
+            if (bytesPerPixel != Channel) throw new NotSupportedException();
 
             Width = width;
             Height = height;
@@ -31,14 +31,14 @@ namespace PixelMatrix.Core
         }
 
         #region IEquatable<T>
-        public bool Equals(Pixel3chMatrix other) => this == other;
-        public override bool Equals(object? obj) => (obj is Pixel3chMatrix other) && Equals(other);
+        public bool Equals(Pixel3Matrix other) => this == other;
+        public override bool Equals(object? obj) => (obj is Pixel3Matrix other) && Equals(other);
         public override int GetHashCode() => HashCode.Combine(PixelsPtr, Width, Height, BytesPerPixel, Stride);
-        public static bool operator ==(in Pixel3chMatrix left, in Pixel3chMatrix right)
+        public static bool operator ==(in Pixel3Matrix left, in Pixel3Matrix right)
              => (left.PixelsPtr, left.Width, left.Height, left.BytesPerPixel, left.Stride)
                 == (right.PixelsPtr, right.Width, right.Height, right.BytesPerPixel, right.Stride);
 
-        public static bool operator !=(in Pixel3chMatrix left, in Pixel3chMatrix right) => !(left == right);
+        public static bool operator !=(in Pixel3Matrix left, in Pixel3Matrix right) => !(left == right);
         #endregion
 
         #region Properties
@@ -171,11 +171,11 @@ namespace PixelMatrix.Core
 
         #region CutOut
         /// <summary>画像の一部を切り出した子画像を取得します</summary>
-        public Pixel3chMatrix CutOutPixelMatrix(int x, int y, int width, int height)
+        public Pixel3Matrix CutOutPixelMatrix(int x, int y, int width, int height)
         {
             if (Width < x + width) throw new ArgumentException("vertical direction");
             if (Height < y + height) throw new ArgumentException("horizontal direction");
-            return new Pixel3chMatrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y));
+            return new Pixel3Matrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y));
         }
         #endregion
 
@@ -186,9 +186,8 @@ namespace PixelMatrix.Core
             if (IsInvalid) throw new ArgumentException("Invalid image.");
             if (File.Exists(savePath)) throw new SystemException("File is exists.");
 
-            using var ms = new MemoryStream();
-            var bitmapSpan = GetBitmapBinary(this);
-            ms.Read(bitmapSpan);
+            var bitmapBytes = GetBitmapBinary(this);
+            using var ms = new MemoryStream(bitmapBytes);
             ms.Seek(0, SeekOrigin.Begin);
 
             using var fs = new FileStream(savePath, FileMode.Create);
@@ -196,7 +195,7 @@ namespace PixelMatrix.Core
 
             ms.WriteTo(fs);
 
-            static Span<byte> GetBitmapBinary(in Pixel3chMatrix pixel)
+            static byte[] GetBitmapBinary(in Pixel3Matrix pixel)
             {
                 var height = pixel.Height;
                 var srcStride = pixel.Stride;

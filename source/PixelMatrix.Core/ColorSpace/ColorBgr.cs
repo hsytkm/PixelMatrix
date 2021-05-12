@@ -24,8 +24,6 @@ namespace PixelMatrix.Core.ColorSpace
 
         private static double ToLuminanceY(double b, double g, double r) => 0.299 * r + 0.587 * g + 0.114 * b;
 
-        public ColorLab ToColorLab() => ColorLab.Create(B, G, R);
-
         public override string ToString() => $"B={B:f1}, G={G:f1}, R={R:f1}, Y={Y:f1}";
 
         public string ToString(string? format, IFormatProvider? formatProvider)
