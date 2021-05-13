@@ -20,6 +20,9 @@ namespace PixelMatrix.Core
         public readonly int BytesPerPixel;
         public readonly int Stride;
 
+        public int Column => Width;
+        public int Row => Height;
+
         public Pixel3Matrix(int width, int height, int bytesPerPixel, int stride, IntPtr intPtr)
         {
             if (IntPtr.Size != 8) throw new NotSupportedException();
@@ -62,6 +65,17 @@ namespace PixelMatrix.Core
         }
 
         public bool IsInvalid => !IsValid;
+        #endregion
+
+        #region Span
+        /// <summary>指定行の画素Spanを取得します</summary>
+        public unsafe ReadOnlySpan<Pixel3ch> GetRowSpan(int row)
+        {
+            if (row < 0 || Height - 1 < row) throw new ArgumentException("invalid row");
+
+            var ptr = PixelsPtr + (row * Stride);
+            return new ReadOnlySpan<Pixel3ch>(ptr.ToPointer(), Width);
+        }
         #endregion
 
         #region GetChannelsAverage
@@ -178,6 +192,97 @@ namespace PixelMatrix.Core
             if (Width < x + width) throw new ArgumentException("vertical direction");
             if (Height < y + height) throw new ArgumentException("horizontal direction");
             return new Pixel3Matrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y));
+        }
+        #endregion
+
+        #region CopyTo
+        /// <summary>画素値をコピーします</summary>
+        public void CopyTo(in Pixel3Matrix destPixels)
+        {
+            if (this.Width != destPixels.Width || this.Height != destPixels.Height) throw new ArgumentException("size is different.");
+            if (this.PixelsPtr == destPixels.PixelsPtr) throw new ArgumentException("same pointer.");
+
+            Update(this, destPixels);
+
+            // 画素値のコピー（サイズチェックなし）
+            static void Update(in Pixel3Matrix srcPixels, in Pixel3Matrix destPixels)
+            {
+                // メモリが連続していれば memcopy
+                if (srcPixels.IsContinuous && destPixels.IsContinuous)
+                {
+                    UnsafeHelper.MemCopy(srcPixels.PixelsPtr, destPixels.PixelsPtr, srcPixels.AllocatedSize);
+                    return;
+                }
+
+                unsafe
+                {
+                    var (width, height, bytesPerPixel) = (srcPixels.Width, srcPixels.Height, srcPixels.BytesPerPixel);
+                    var srcHeadPtr = (byte*)srcPixels.PixelsPtr;
+                    var srcStride = srcPixels.Stride;
+                    var dstHeadPtr = (byte*)destPixels.PixelsPtr;
+                    var dstStride = destPixels.Stride;
+
+                    for (int y = 0; y < height; y++)
+                    {
+                        var src = srcHeadPtr + (y * srcStride);
+                        var dst = dstHeadPtr + (y * dstStride);
+
+                        for (int x = 0; x < width * bytesPerPixel; x += bytesPerPixel)
+                        {
+                            *(Pixel3ch*)(dst + x) = *(Pixel3ch*)(src + x);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>画素値を拡大コピーします</summary>
+        public void CopyToWithScaleUp(in Pixel3Matrix destination)
+        {
+            if (this.BitsPerPixel != 3 || destination.BitsPerPixel != 3)
+                throw new ArgumentException("byte/pixel error.");
+
+            if (destination.Width % this.Width != 0 || destination.Height % this.Height != 0)
+                throw new ArgumentException("must be an integral multiple.");
+
+            var widthRatio = destination.Width / this.Width;
+            var heightRatio = destination.Height / this.Height;
+            if (widthRatio != heightRatio) throw new ArgumentException("magnifications are different.");
+
+            var magnification = widthRatio;
+            if (magnification <= 1) throw new ArgumentException("ratio must be greater than 1.");
+
+            ScaleUp(this, destination, magnification);
+
+            static unsafe void ScaleUp(in Pixel3Matrix source, in Pixel3Matrix destination, int magnification)
+            {
+                var bytesPerPixel = source.BytesPerPixel;
+                var srcPixelHead = (byte*)source.PixelsPtr;
+                var srcStride = source.Stride;
+                var srcWidth = source.Width;
+                var srcHeight = source.Height;
+
+                var destPixelHead = (byte*)destination.PixelsPtr;
+                var destStride = destination.Stride;
+
+                for (int y = 0; y < srcHeight; y++)
+                {
+                    var src = srcPixelHead + (srcStride * y);
+                    var dest0 = destPixelHead + (destStride * y * magnification);
+
+                    for (int x = 0; x < srcWidth * bytesPerPixel; x += bytesPerPixel)
+                    {
+                        var pixel = (Pixel3ch*)(src + x);
+                        var dest1 = dest0 + (x * magnification);
+
+                        for (byte* dest2 = dest1; dest2 < dest1 + (destStride * magnification); dest2 += destStride)
+                        {
+                            for (byte* dest3 = dest2; dest3 < dest2 + (bytesPerPixel * magnification); dest3 += bytesPerPixel)
+                                *((Pixel3ch*)dest3) = *pixel;
+                        }
+                    }
+                }
+            }
         }
         #endregion
 

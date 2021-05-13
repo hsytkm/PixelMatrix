@@ -3,7 +3,7 @@ using System;
 
 namespace PixelMatrix.Wpf.Extensions
 {
-    public static class Pixel3MatrixExtension
+    public static class PixelMatrixExtension
     {
         internal static double _dpiX = 96.0;
         internal static double _dpiY = _dpiX;
@@ -18,7 +18,7 @@ namespace PixelMatrix.Wpf.Extensions
             var bitmapSource = System.Windows.Media.Imaging.BitmapSource.Create(
                 pixel.Width, pixel.Height, _dpiX, _dpiY,
                 System.Windows.Media.PixelFormats.Bgr24, null,
-                pixel.PixelsPtr, pixel.AllocatedSize, pixel.Stride);
+                pixel.PixelsPtr, pixel.Stride * pixel.Height, pixel.Stride);
 
             if (isFreeze) bitmapSource.Freeze();
             return bitmapSource;
@@ -39,7 +39,7 @@ namespace PixelMatrix.Wpf.Extensions
 
             writeableBitmap.WritePixels(
                 new System.Windows.Int32Rect(0, 0, pixel.Width, pixel.Height),
-                pixel.PixelsPtr, pixel.AllocatedSize, pixel.Stride);
+                pixel.PixelsPtr, pixel.Stride * pixel.Height, pixel.Stride);
 
             if (isFreeze) writeableBitmap.Freeze();
         }

@@ -1,8 +1,9 @@
-﻿using System;
+﻿using PixelMatrix.Core;
+using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 
-namespace PixelMatrix.Core.Extensions
+namespace PixelMatrix.Drawing.Extensions
 {
     public static class PixelMatrixDrawingBitmapExtension
     {
@@ -24,21 +25,21 @@ namespace PixelMatrix.Core.Extensions
 
             static int Ceiling(int value, int div) => (value + (div - 1)) / div;
         }
-        
-        /// <summary>ImagePixelsContainer を作成して返します</summary>
-        public static PixelMatrixContainer ToImagePixelsContainer(this Bitmap bitmap)
+
+        /// <summary>PixelMatrixContainer を作成して返します</summary>
+        public static PixelMatrixContainer ToPixelMatrixContainer(this Bitmap bitmap, bool isDisposeBitmap = false)
         {
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Image");
 
             var container = new PixelMatrixContainer(bitmap.Width, bitmap.Height);
             var pixels = container.FullPixels;
-            Update(bitmap, pixels);
+            Update(bitmap, pixels, isDisposeBitmap);
 
             return container;
         }
 
-        /// <summary>ImagePixels に画素値をコピーします</summary>
-        public static void Update(this Bitmap bitmap, in Pixel3Matrix pixels)
+        /// <summary>Pixel3Matrix に画素値をコピーします</summary>
+        public static void Update(this Bitmap bitmap, in Pixel3Matrix pixels, bool isDisposeBitmap = false)
         {
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Bitmap");
             if (pixels.IsInvalid) throw new ArgumentException("Invalid Pixels");
@@ -94,6 +95,8 @@ namespace PixelMatrix.Core.Extensions
             {
                 bitmap.UnlockBits(bitmapData);
             }
+
+            if (isDisposeBitmap) bitmap.Dispose();
         }
 
     }
