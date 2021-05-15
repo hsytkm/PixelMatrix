@@ -11,13 +11,13 @@ namespace PixelMatrix.Core
         //private static extern void RtlMoveMemory(IntPtr dest, IntPtr src, [MarshalAs(UnmanagedType.U4)] int length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void MemCopy(IntPtr dest, IntPtr src, int length) => InternalMemCopy(dest.ToPointer(), src.ToPointer(), length);
+        public static unsafe void MemCopy(IntPtr dest, IntPtr src, int length) => MemCopyInternal(dest.ToPointer(), src.ToPointer(), length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe void MemCopy(void* dest, void* src, int length) => InternalMemCopy(dest, src, length);
+        public static unsafe void MemCopy(void* dest, void* src, int length) => MemCopyInternal(dest, src, length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void InternalMemCopy(void* dest, void* src, int length)
+        private static unsafe void MemCopyInternal(void* dest, void* src, int length)
         {
             byte* destPtr = (byte*)dest;
             byte* srcPtr = (byte*)src;

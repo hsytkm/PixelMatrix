@@ -33,13 +33,13 @@ namespace PixelMatrix.Drawing.Extensions
 
             var container = new PixelMatrixContainer(bitmap.Width, bitmap.Height);
             var pixels = container.FullPixels;
-            Update(bitmap, pixels, isDisposeBitmap);
+            CopyTo(bitmap, pixels, isDisposeBitmap);
 
             return container;
         }
 
         /// <summary>Pixel3Matrix に画素値をコピーします</summary>
-        public static void Update(this Bitmap bitmap, in Pixel3Matrix pixels, bool isDisposeBitmap = false)
+        public static void CopyTo(this Bitmap bitmap, in Pixel3Matrix pixels, bool isDisposeBitmap = false)
         {
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Bitmap");
             if (pixels.IsInvalid) throw new ArgumentException("Invalid Pixels");

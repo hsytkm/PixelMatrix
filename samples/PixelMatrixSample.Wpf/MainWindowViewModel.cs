@@ -5,6 +5,7 @@ using Prism.Mvvm;
 using Reactive.Bindings;
 using System;
 using System.Diagnostics;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace PixelMatrixSample.Wpf
@@ -30,12 +31,15 @@ namespace PixelMatrixSample.Wpf
             // 1. 三角領域を指定色で指定塗り
             FillTriangle(fullPixelMatrix);
 
-            // 2. 上部を切り出して指定塗り
+            // 2. 四角形（塗りつぶしなし）を描画
+            fullPixelMatrix.DrawRectangle(Colors.Cyan.ToPixel3ch(), 200, 200, 100, 200);
+
+            // 3. 上部を切り出して指定塗り
             var headerPixelMatrix = fullPixelMatrix.CutOutPixelMatrix(0, 0, fullPixelMatrix.Width, 30);
             headerPixelMatrix.FillAllPixels(Pixel3ch.Gray);
             var headerChannelAverage2 = headerPixelMatrix.GetChannelsAverageOfEntire();
 
-            // 3. 上部を除いた左部を切り出してグレスケ塗り
+            // 4. 上部を除いた左部を切り出してグレスケ塗り
             var leftPixelMatrix = fullPixelMatrix.CutOutPixelMatrix(0, headerPixelMatrix.Height, 50, fullPixelMatrix.Height - headerPixelMatrix.Height);
             FillGrayScaleVertical(leftPixelMatrix);
 

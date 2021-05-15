@@ -27,12 +27,12 @@ namespace PixelMatrix.Wpf.Extensions
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Image");
 
             var container = new PixelMatrixContainer(bitmap.PixelWidth, bitmap.PixelHeight);
-            container.FullPixels.Update(bitmap);
+            container.FullPixels.CopyTo(bitmap);
             return container;
         }
 
         /// <summary>ImagePixels に画素値をコピーします</summary>
-        internal static void Update(in this Pixel3Matrix pixel, BitmapSource bitmap)
+        internal static void CopyTo(in this Pixel3Matrix pixel, BitmapSource bitmap)
         {
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Bitmap");
             if (pixel.IsInvalid) throw new ArgumentException("Invalid Pixels");

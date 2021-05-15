@@ -27,7 +27,7 @@ namespace PixelMatrix.Wpf.Extensions
 
         #region ToWriteableBitmap
         /// <summary>System.Windows.Media.Imaging.WriteableBitmap の画素値を更新します(遅いです)</summary>
-        public static void Update(this System.Windows.Media.Imaging.WriteableBitmap writeableBitmap, in Pixel3Matrix pixel, bool isFreeze = false)
+        public static void CopyTo(this System.Windows.Media.Imaging.WriteableBitmap writeableBitmap, in Pixel3Matrix pixel, bool isFreeze = false)
         {
             if (pixel.IsInvalid) throw new ArgumentException("Invalid Image");
 
@@ -54,7 +54,7 @@ namespace PixelMatrix.Wpf.Extensions
                 pixel.Width, pixel.Height, _dpiX, _dpiY,
                 System.Windows.Media.PixelFormats.Bgr24, null);
 
-            Update(writeableBitmap, pixel, isFreeze);
+            CopyTo(writeableBitmap, pixel, isFreeze);
             return writeableBitmap;
         }
         #endregion

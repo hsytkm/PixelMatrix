@@ -147,7 +147,7 @@ namespace PixelMatrix.Core
         #endregion
 
         #region FillRectangle
-        /// <summary>指定領域の画素を更新します</summary>
+        /// <summary>指定領域の画素を塗りつぶします</summary>
         public void FillRectangle(in Pixel3ch pixel, int x, int y, int width, int height)
         {
             if (Width < x + width) throw new ArgumentException("vertical direction");
@@ -164,6 +164,43 @@ namespace PixelMatrix.Core
                     for (var p = (Pixel3ch*)linePtr; p < linePtr + widthOffset; p++)
                         *p = pixel;
                 }
+            }
+        }
+        #endregion
+
+        #region DrawRectangle
+        /// <summary>指定枠を描画します</summary>
+        public void DrawRectangle(in Pixel3ch pixel, int x, int y, int width, int height)
+        {
+            if (Width < x + width) throw new ArgumentException("vertical direction");
+            if (Height < y + height) throw new ArgumentException("horizontal direction");
+
+            unsafe
+            {
+                var stride = this.Stride;
+                var bytesPerPixel = this.BytesPerPixel;
+                var widthOffset = (width - 1) * bytesPerPixel;
+                var rectHeadPtr = (byte*)GetPixelPtr(x, y);
+
+                // 上ライン
+                for (var ptr = rectHeadPtr; ptr < rectHeadPtr + widthOffset; ptr += bytesPerPixel)
+                    *((Pixel3ch*)ptr) = pixel;
+
+                // 下ライン
+                var bottomHeadPtr = rectHeadPtr + ((height - 1) * stride);
+                for (var ptr = bottomHeadPtr; ptr < bottomHeadPtr + widthOffset; ptr += bytesPerPixel)
+                    *((Pixel3ch*)ptr) = pixel;
+
+                // 左ライン
+                var leftTailPtr = rectHeadPtr + (height * stride);
+                for (var ptr = rectHeadPtr; ptr < leftTailPtr; ptr += stride)
+                    *((Pixel3ch*)ptr) = pixel;
+
+                // 右ライン
+                var rightHeadPtr = rectHeadPtr + widthOffset;
+                var rightTailPtr = rightHeadPtr + (height * stride);
+                for (var ptr = rightHeadPtr; ptr < rightTailPtr; ptr += stride)
+                    *((Pixel3ch*)ptr) = pixel;
             }
         }
         #endregion
@@ -202,15 +239,15 @@ namespace PixelMatrix.Core
             if (this.Width != destPixels.Width || this.Height != destPixels.Height) throw new ArgumentException("size is different.");
             if (this.PixelsPtr == destPixels.PixelsPtr) throw new ArgumentException("same pointer.");
 
-            Update(this, destPixels);
+            CopyToInternal(this, destPixels);
 
             // 画素値のコピー（サイズチェックなし）
-            static void Update(in Pixel3Matrix srcPixels, in Pixel3Matrix destPixels)
+            static void CopyToInternal(in Pixel3Matrix srcPixels, in Pixel3Matrix destPixels)
             {
                 // メモリが連続していれば memcopy
                 if (srcPixels.IsContinuous && destPixels.IsContinuous)
                 {
-                    UnsafeHelper.MemCopy(srcPixels.PixelsPtr, destPixels.PixelsPtr, srcPixels.AllocatedSize);
+                    UnsafeHelper.MemCopy(destPixels.PixelsPtr, srcPixels.PixelsPtr, srcPixels.AllocatedSize);
                     return;
                 }
 
@@ -239,8 +276,8 @@ namespace PixelMatrix.Core
         /// <summary>画素値を拡大コピーします</summary>
         public void CopyToWithScaleUp(in Pixel3Matrix destination)
         {
-            if (this.BitsPerPixel != 3 || destination.BitsPerPixel != 3)
-                throw new ArgumentException("byte/pixel error.");
+            if (this.BytesPerPixel != 3 || destination.BytesPerPixel != 3)
+                throw new ArgumentException("bytes/pixel error.");
 
             if (destination.Width % this.Width != 0 || destination.Height % this.Height != 0)
                 throw new ArgumentException("must be an integral multiple.");
