@@ -47,7 +47,7 @@ namespace PixelMatrix.Core
         #endregion
 
         /// <summary>構造体を byte[] に書き出します</summary>
-        public static void CopyStructToArray<T>(T srcData, in ReadOnlySpan<byte> destArray) where T : unmanaged
+        public static unsafe void CopyStructToArray<T>(T srcData, in Span<byte> destArray) where T : unmanaged
         {
             // unsafe is faster than Marshal.Copy and GCHandle.
             // https://gist.github.com/hsytkm/55b9bdfaa3eae18fcc1b91449cf16998
@@ -55,12 +55,9 @@ namespace PixelMatrix.Core
             var size = Marshal.SizeOf<T>();
             if (size > destArray.Length) throw new ArgumentOutOfRangeException();
 
-            unsafe
+            fixed (byte* p = destArray)
             {
-                fixed (byte* p = destArray)
-                {
-                    *(T*)p = srcData;
-                }
+                *(T*)p = srcData;
             }
         }
 

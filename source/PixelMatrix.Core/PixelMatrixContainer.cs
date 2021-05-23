@@ -8,7 +8,6 @@ namespace PixelMatrix.Core
         public Pixel3Matrix FullPixels { get; }
         private readonly IntPtr _allocatedMemoryPointer;
         private readonly int _allocatedSize;
-        private bool _disposedValue;
 
         public PixelMatrixContainer(int width, int height) : this(width, height, Pixel3Matrix.Channel) { }
 
@@ -24,6 +23,7 @@ namespace PixelMatrix.Core
         }
 
         #region IDisposable
+        private bool _disposedValue;
         protected virtual void Dispose(bool disposing)
         {
             if (_disposedValue) return;
