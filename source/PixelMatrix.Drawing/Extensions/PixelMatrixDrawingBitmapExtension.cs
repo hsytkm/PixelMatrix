@@ -32,7 +32,7 @@ namespace PixelMatrix.Drawing.Extensions
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Image");
 
             var container = new PixelMatrixContainer(bitmap.Width, bitmap.Height);
-            var pixels = container.FullPixels;
+            var pixels = container.Matrix;
             CopyTo(bitmap, pixels, isDisposeBitmap);
 
             return container;
@@ -47,7 +47,7 @@ namespace PixelMatrix.Drawing.Extensions
             if (bitmap.Height != pixels.Height) throw new ArgumentException("Different Height");
 
             var srcBytesPerPixel = bitmap.GetBytesPerPixel();
-            if (srcBytesPerPixel < pixels.BytesPerPixel) throw new NotImplementedException("Different BytesPerPixel");
+            if (srcBytesPerPixel < pixels.BytesPerData) throw new NotImplementedException("Different BytesPerPixel");
 
             var bitmapData = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMode.ReadOnly, bitmap.PixelFormat);
 
@@ -59,9 +59,9 @@ namespace PixelMatrix.Drawing.Extensions
                     var srcStride = bitmapData.Stride;
                     var srcPtrTail = srcHead + (bitmap.Height * srcStride);
 
-                    var destHead = (byte*)pixels.PixelsPtr;
+                    var destHead = (byte*)pixels.Pointer;
                     var destStride = pixels.Stride;
-                    var destBytesPerPixel = pixels.BytesPerPixel;
+                    var destBytesPerPixel = pixels.BytesPerData;
 
                     var isSameLength = srcBytesPerPixel == destBytesPerPixel;
 

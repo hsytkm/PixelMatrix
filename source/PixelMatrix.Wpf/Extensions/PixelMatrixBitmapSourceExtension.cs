@@ -27,7 +27,7 @@ namespace PixelMatrix.Wpf.Extensions
             if (bitmap.IsInvalid()) throw new ArgumentException("Invalid Image");
 
             var container = new PixelMatrixContainer(bitmap.PixelWidth, bitmap.PixelHeight);
-            container.FullPixels.CopyTo(bitmap);
+            container.Matrix.CopyTo(bitmap);
             return container;
         }
 
@@ -51,7 +51,7 @@ namespace PixelMatrix.Wpf.Extensions
             {
                 unsafe
                 {
-                    var destHead = (byte*)pixel.PixelsPtr;
+                    var destHead = (byte*)pixel.Pointer;
 
                     fixed (byte* head = bufferArray)
                     {

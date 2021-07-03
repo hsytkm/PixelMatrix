@@ -1,26 +1,28 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using PixelMatrix.Core.Interfaces;
 
 namespace PixelMatrix.Core
 {
-    public class PixelMatrixContainer : IDisposable
+    public abstract class MatrixContainerBase<TMatrix, TValue> : IDisposable
+        where TMatrix : IMatrix<TValue> where TValue : struct
     {
-        public Pixel3Matrix FullPixels { get; }
+        public TMatrix Matrix { get; }
         private readonly IntPtr _allocatedMemoryPointer;
         private readonly int _allocatedSize;
 
-        public PixelMatrixContainer(int width, int height) : this(width, height, Pixel3Matrix.Channel) { }
-
-        private PixelMatrixContainer(int width, int height, int bytesPerPixels)
+        public MatrixContainerBase(int width, int height, int bytesPerData)
         {
-            var stride = width * bytesPerPixels;
+            var stride = width * bytesPerData;
 
             _allocatedSize = stride * height;
             _allocatedMemoryPointer = Marshal.AllocCoTaskMem(_allocatedSize);
             GC.AddMemoryPressure(_allocatedSize);
 
-            FullPixels = new Pixel3Matrix(width, height, bytesPerPixels, stride, _allocatedMemoryPointer);
+            Matrix = CreateMatrix(width, height, bytesPerData, stride, _allocatedMemoryPointer);
         }
+
+        protected abstract TMatrix CreateMatrix(int width, int height, int bytesPerData, int stride, IntPtr intPtr);
 
         #region IDisposable
         private bool _disposedValue;
@@ -43,7 +45,7 @@ namespace PixelMatrix.Core
         }
 
         // TODO: 'Dispose(bool disposing)' にアンマネージド リソースを解放するコードが含まれる場合にのみ、ファイナライザーをオーバーライドします
-        ~PixelMatrixContainer()
+        ~MatrixContainerBase()
         {
             // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
             Dispose(disposing: false);
@@ -56,6 +58,26 @@ namespace PixelMatrix.Core
             GC.SuppressFinalize(this);
         }
         #endregion
-
     }
+
+    public class PixelMatrixContainer : MatrixContainerBase<Pixel3Matrix, Pixel3ch>
+    {
+        public PixelMatrixContainer(int width, int height)
+            : base(width, height, Pixel3Matrix.Channel)
+        { }
+
+        protected override Pixel3Matrix CreateMatrix(int width, int height, int bytesPerData, int stride, IntPtr intPtr)
+            => new Pixel3Matrix(width, height, bytesPerData, stride, intPtr);
+    }
+
+    public class DoubleMatrixContainer : MatrixContainerBase<DoubleMatrix, double>
+    {
+        public DoubleMatrixContainer(int width, int height)
+            : base(width, height, sizeof(double))
+        { }
+
+        protected override DoubleMatrix CreateMatrix(int width, int height, int bytesPerData, int stride, IntPtr intPtr)
+            => new DoubleMatrix(width, height, bytesPerData, stride, intPtr);
+    }
+
 }

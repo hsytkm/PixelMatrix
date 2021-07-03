@@ -1,4 +1,6 @@
 ﻿using PixelMatrix.Core.ColorSpace;
+using PixelMatrix.Core.Extensions;
+using PixelMatrix.Core.Interfaces;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -9,73 +11,61 @@ using System.Threading.Tasks;
 namespace PixelMatrix.Core
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 24)]
-    public readonly struct Pixel3Matrix : IEquatable<Pixel3Matrix>
+    public readonly struct Pixel3Matrix : IEquatable<Pixel3Matrix>, IMatrix<Pixel3ch>
     {
-        public static int Channel = 3;
+        public const int Channel = 3;
 
-        public readonly IntPtr PixelsPtr;
-        //public readonly int AllocSize; //= Height * Stride;
-        public readonly int Width;
-        public readonly int Height;
-        public readonly int BytesPerPixel;
-        public readonly int Stride;
-
-        public int Column => Width;
-        public int Row => Height;
+        private readonly IntPtr _pointer;
+        //private readonly int _allocSize; //= Height * Stride;
+        private readonly int _width;
+        private readonly int _height;
+        private readonly int _bytesPerData;
+        private readonly int _stride;
 
         public Pixel3Matrix(int width, int height, int bytesPerPixel, int stride, IntPtr intPtr)
         {
             if (IntPtr.Size != 8) throw new NotSupportedException();
             if (bytesPerPixel != Channel) throw new NotSupportedException();
 
-            Width = width;
-            Height = height;
-            BytesPerPixel = bytesPerPixel;
-            Stride = stride;
-            PixelsPtr = intPtr;
+            _width = width;
+            _height = height;
+            _bytesPerData = bytesPerPixel;
+            _stride = stride;
+            _pointer = intPtr;
         }
+
+        #region IMatrix<T>
+        public int Columns => _width;
+        public int Rows => _height;
+        public IntPtr Pointer => _pointer;
+        public int Width => _width;
+        public int Height => _height;
+        public int BytesPerData => _bytesPerData;
+        public int BitsPerData => _bytesPerData * 8;
+        public int Stride => _stride;
+        #endregion
+
+        public int BytesPerPixel => BytesPerData;
+        public int BitsPerPixel => BitsPerData;
+
+        #region MatrixExtension
+        public int AllocatedSize => this.GetAllocatedSize<Pixel3Matrix, Pixel3ch>();
+        public bool IsContinuous => this.IsContinuous<Pixel3Matrix, Pixel3ch>();
+        public bool IsValid => this.IsValid<Pixel3Matrix, Pixel3ch>();
+        public bool IsInvalid => !IsValid;
+        public Span<Pixel3ch> GetRowSpan(int row) => this.GetRowSpan<Pixel3Matrix, Pixel3ch>(row);
+        public ReadOnlySpan<Pixel3ch> GetRoRowSpan(int row) => this.GetRoRowSpan<Pixel3Matrix, Pixel3ch>(row);
+        #endregion
 
         #region IEquatable<T>
         public bool Equals(Pixel3Matrix other) => this == other;
         public override bool Equals(object? obj) => (obj is Pixel3Matrix other) && Equals(other);
-        public override int GetHashCode() => HashCode.Combine(PixelsPtr, Width, Height, BytesPerPixel, Stride);
+        public override int GetHashCode() => HashCode.Combine(_pointer, _width, _height, _bytesPerData, _stride);
         public static bool operator ==(in Pixel3Matrix left, in Pixel3Matrix right)
-             => (left.PixelsPtr, left.Width, left.Height, left.BytesPerPixel, left.Stride)
-                == (right.PixelsPtr, right.Width, right.Height, right.BytesPerPixel, right.Stride);
+             => (left._pointer, left._width, left._height, left._bytesPerData, left._stride)
+                == (right._pointer, right._width, right._height, right._bytesPerData, right._stride);
 
         public static bool operator !=(in Pixel3Matrix left, in Pixel3Matrix right) => !(left == right);
-        #endregion
-
-        #region Properties
-        public int AllocatedSize => Width * BytesPerPixel * Height;     // Strideは見ない
-        public int BitsPerPixel => BytesPerPixel * 8;
-
-        public bool IsContinuous => (Width * BytesPerPixel) == Stride;
-
-        public bool IsValid
-        {
-            get
-            {
-                if (PixelsPtr == IntPtr.Zero) return false;
-                if (Width <= 0 || Height <= 0) return false;
-                if (Stride < Width * BytesPerPixel) return false;
-                if (AllocatedSize < Width * BytesPerPixel * Height) return false;
-                return true;    //valid
-            }
-        }
-
-        public bool IsInvalid => !IsValid;
-        #endregion
-
-        #region Span
-        /// <summary>指定行の画素Spanを取得します</summary>
-        public unsafe ReadOnlySpan<Pixel3ch> GetRowSpan(int row)
-        {
-            if (row < 0 || Height - 1 < row) throw new ArgumentException("invalid row");
-
-            var ptr = PixelsPtr + (row * Stride);
-            return new ReadOnlySpan<Pixel3ch>(ptr.ToPointer(), Width);
-        }
         #endregion
 
         #region GetChannelsAverage
@@ -84,16 +74,16 @@ namespace PixelMatrix.Core
         {
             if (IsInvalid) throw new ArgumentException("Invalid image.");
             if (width * height == 0) throw new ArgumentException("Area is zero.");
-            if (Width < x + width) throw new ArgumentException("Width over.");
-            if (Height < y + height) throw new ArgumentException("Height over.");
+            if (_width < x + width) throw new ArgumentException("Width over.");
+            if (_height < y + height) throw new ArgumentException("Height over.");
 
-            var bytesPerPixel = BytesPerPixel;
+            var bytesPerPixel = _bytesPerData;
             Span<ulong> sumChannels = stackalloc ulong[bytesPerPixel];
 
             unsafe
             {
-                var stride = Stride;
-                var rowHead = (byte*)PixelsPtr + (y * stride);
+                var stride = _stride;
+                var rowHead = (byte*)_pointer + (y * stride);
                 var rowTail = rowHead + (height * stride);
                 var columnLength = width * bytesPerPixel;
 
@@ -120,7 +110,7 @@ namespace PixelMatrix.Core
         }
 
         /// <summary>画面全体における各チャンネルの画素平均値を取得します</summary>
-        public ColorBgr GetChannelsAverageOfEntire() => GetChannelsAverage(0, 0, Width, Height);
+        public ColorBgr GetChannelsAverageOfEntire() => GetChannelsAverage(0, 0, _width, _height);
         #endregion
 
         #region FillAllPixels
@@ -129,12 +119,12 @@ namespace PixelMatrix.Core
         {
             unsafe
             {
-                var pixelsHead = (byte*)PixelsPtr;
-                var stride = Stride;
-                var pixelsTail = pixelsHead + Height * stride;
-                var widthOffset = Width * BytesPerPixel;
+                var pixelsHead = (byte*)_pointer;
+                var stride = _stride;
+                var pixelsTail = pixelsHead + _height * stride;
+                var widthOffset = _width * _bytesPerData;
 
-                for (var line = (byte*)PixelsPtr; line < pixelsTail; line += stride)
+                for (var line = (byte*)_pointer; line < pixelsTail; line += stride)
                 {
                     var lineTail = line + widthOffset;
                     for (var p = (Pixel3ch*)line; p < lineTail; ++p)
@@ -150,16 +140,16 @@ namespace PixelMatrix.Core
         /// <summary>指定領域の画素を塗りつぶします</summary>
         public void FillRectangle(in Pixel3ch pixel, int x, int y, int width, int height)
         {
-            if (Width < x + width) throw new ArgumentException("vertical direction");
-            if (Height < y + height) throw new ArgumentException("horizontal direction");
+            if (_width < x + width) throw new ArgumentException("vertical direction");
+            if (_height < y + height) throw new ArgumentException("horizontal direction");
 
             unsafe
             {
                 var lineHeadPtr = (byte*)GetPixelPtr(x, y);
-                var lineTailPtr = lineHeadPtr + (height * Stride);
-                var widthOffset = width * BytesPerPixel;
+                var lineTailPtr = lineHeadPtr + (height * _stride);
+                var widthOffset = width * _bytesPerData;
 
-                for (var linePtr = lineHeadPtr; linePtr < lineTailPtr; linePtr += Stride)
+                for (var linePtr = lineHeadPtr; linePtr < lineTailPtr; linePtr += _stride)
                 {
                     for (var p = (Pixel3ch*)linePtr; p < linePtr + widthOffset; p++)
                         *p = pixel;
@@ -172,13 +162,13 @@ namespace PixelMatrix.Core
         /// <summary>指定枠を描画します</summary>
         public void DrawRectangle(in Pixel3ch pixel, int x, int y, int width, int height)
         {
-            if (Width < x + width) throw new ArgumentException("vertical direction");
-            if (Height < y + height) throw new ArgumentException("horizontal direction");
+            if (_width < x + width) throw new ArgumentException("vertical direction");
+            if (_height < y + height) throw new ArgumentException("horizontal direction");
 
             unsafe
             {
-                var stride = this.Stride;
-                var bytesPerPixel = this.BytesPerPixel;
+                var stride = _stride;
+                var bytesPerPixel = _bytesPerData;
                 var widthOffset = (width - 1) * bytesPerPixel;
                 var rectHeadPtr = (byte*)GetPixelPtr(x, y);
 
@@ -209,14 +199,14 @@ namespace PixelMatrix.Core
         /// <summary>指定画素の IntPtr を取得します</summary>
         public IntPtr GetPixelPtr(int x, int y)
         {
-            if (x > Width - 1 || y > Height - 1) throw new ArgumentException("Out of image.");
-            return PixelsPtr + (y * Stride) + (x * BytesPerPixel);
+            if (x > _width - 1 || y > _height - 1) throw new ArgumentException("Out of image.");
+            return _pointer + (y * _stride) + (x * _bytesPerData);
         }
 
         /// <summary>指定位置の画素を更新します</summary>
         public void WritePixel(in Pixel3ch pixels, int x, int y)
         {
-            if (x > Width - 1 || y > Height - 1) return;
+            if (x > _width - 1 || y > _height - 1) return;
             var ptr = GetPixelPtr(x, y);
             UnsafeHelper.WriteStructureToPtr(ptr, pixels);
         }
@@ -226,9 +216,9 @@ namespace PixelMatrix.Core
         /// <summary>画像の一部を切り出した子画像を取得します</summary>
         public Pixel3Matrix CutOutPixelMatrix(int x, int y, int width, int height)
         {
-            if (Width < x + width) throw new ArgumentException("vertical direction");
-            if (Height < y + height) throw new ArgumentException("horizontal direction");
-            return new Pixel3Matrix(width, height, BytesPerPixel, Stride, GetPixelPtr(x, y));
+            if (_width < x + width) throw new ArgumentException("vertical direction");
+            if (_height < y + height) throw new ArgumentException("horizontal direction");
+            return new Pixel3Matrix(width, height, _bytesPerData, _stride, GetPixelPtr(x, y));
         }
         #endregion
 
@@ -236,8 +226,8 @@ namespace PixelMatrix.Core
         /// <summary>画素値をコピーします</summary>
         public void CopyTo(in Pixel3Matrix destPixels)
         {
-            if (this.Width != destPixels.Width || this.Height != destPixels.Height) throw new ArgumentException("size is different.");
-            if (this.PixelsPtr == destPixels.PixelsPtr) throw new ArgumentException("same pointer.");
+            if (_width != destPixels._width || _height != destPixels._height) throw new ArgumentException("size is different.");
+            if (_pointer == destPixels._pointer) throw new ArgumentException("same pointer.");
 
             CopyToInternal(this, destPixels);
 
@@ -247,17 +237,17 @@ namespace PixelMatrix.Core
                 // メモリが連続していれば memcopy
                 if (srcPixels.IsContinuous && destPixels.IsContinuous)
                 {
-                    UnsafeHelper.MemCopy(destPixels.PixelsPtr, srcPixels.PixelsPtr, srcPixels.AllocatedSize);
+                    UnsafeHelper.MemCopy(destPixels._pointer, srcPixels._pointer, srcPixels.AllocatedSize);
                     return;
                 }
 
                 unsafe
                 {
-                    var (width, height, bytesPerPixel) = (srcPixels.Width, srcPixels.Height, srcPixels.BytesPerPixel);
-                    var srcHeadPtr = (byte*)srcPixels.PixelsPtr;
-                    var srcStride = srcPixels.Stride;
-                    var dstHeadPtr = (byte*)destPixels.PixelsPtr;
-                    var dstStride = destPixels.Stride;
+                    var (width, height, bytesPerPixel) = (srcPixels._width, srcPixels._height, srcPixels._bytesPerData);
+                    var srcHeadPtr = (byte*)srcPixels._pointer;
+                    var srcStride = srcPixels._stride;
+                    var dstHeadPtr = (byte*)destPixels._pointer;
+                    var dstStride = destPixels._stride;
 
                     for (int y = 0; y < height; y++)
                     {
@@ -276,14 +266,14 @@ namespace PixelMatrix.Core
         /// <summary>画素値を拡大コピーします</summary>
         public void CopyToWithScaleUp(in Pixel3Matrix destination)
         {
-            if (this.BytesPerPixel != 3 || destination.BytesPerPixel != 3)
+            if (_bytesPerData != 3 || destination._bytesPerData != 3)
                 throw new ArgumentException("bytes/pixel error.");
 
-            if (destination.Width % this.Width != 0 || destination.Height % this.Height != 0)
+            if (destination._width % _width != 0 || destination._height % _height != 0)
                 throw new ArgumentException("must be an integral multiple.");
 
-            var widthRatio = destination.Width / this.Width;
-            var heightRatio = destination.Height / this.Height;
+            var widthRatio = destination._width / _width;
+            var heightRatio = destination._height / _height;
             if (widthRatio != heightRatio) throw new ArgumentException("magnifications are different.");
 
             var magnification = widthRatio;
@@ -293,14 +283,14 @@ namespace PixelMatrix.Core
 
             static unsafe void ScaleUp(in Pixel3Matrix source, in Pixel3Matrix destination, int magnification)
             {
-                var bytesPerPixel = source.BytesPerPixel;
-                var srcPixelHead = (byte*)source.PixelsPtr;
-                var srcStride = source.Stride;
-                var srcWidth = source.Width;
-                var srcHeight = source.Height;
+                var bytesPerPixel = source._bytesPerData;
+                var srcPixelHead = (byte*)source._pointer;
+                var srcStride = source._stride;
+                var srcWidth = source._width;
+                var srcHeight = source._height;
 
-                var destPixelHead = (byte*)destination.PixelsPtr;
-                var destStride = destination.Stride;
+                var destPixelHead = (byte*)destination._pointer;
+                var destStride = destination._stride;
 
                 for (int y = 0; y < srcHeight; y++)
                 {
@@ -360,9 +350,9 @@ namespace PixelMatrix.Core
             // Bitmapのバイナリ配列を取得します
             static byte[] GetBitmapBinary(in Pixel3Matrix pixel)
             {
-                var height = pixel.Height;
-                var srcStride = pixel.Stride;
-                var destHeader = new BitmapHeader(pixel.Width, height, pixel.BitsPerPixel);
+                var height = pixel._height;
+                var srcStride = pixel._stride;
+                var destHeader = new BitmapHeader(pixel._width, height, pixel.BitsPerPixel);
                 var destBuffer = new byte[destHeader.FileSize];     // さずがにデカすぎるのでbyte[]
 
                 // bufferにheaderを書き込む
@@ -371,7 +361,7 @@ namespace PixelMatrix.Core
                 // 画素は左下から右上に向かって記録する
                 unsafe
                 {
-                    var srcHead = (byte*)pixel.PixelsPtr;
+                    var srcHead = (byte*)pixel._pointer;
                     fixed (byte* pointer = destBuffer)
                     {
                         var destHead = pointer + destHeader.OffsetBytes;

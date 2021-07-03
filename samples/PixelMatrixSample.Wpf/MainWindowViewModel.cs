@@ -21,7 +21,7 @@ namespace PixelMatrixSample.Wpf
             SourceImage = new ReactivePropertySlim<BitmapSource>(initialValue: bitmapImage);
 
             using var pixelContainer = bitmapImage.ToPixelMatrixContainer();
-            var fullPixelMatrix = pixelContainer.FullPixels;
+            var fullPixelMatrix = pixelContainer.Matrix;
 
             // 元画像の画素値平均
             var channelAverage1 = fullPixelMatrix.GetChannelsAverageOfEntire();
